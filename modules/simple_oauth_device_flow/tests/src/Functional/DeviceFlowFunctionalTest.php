@@ -139,6 +139,7 @@ class DeviceFlowFunctionalTest extends BrowserTestBase {
     $this->helperDeviceAuthorizationWithMissingClientId();
     $this->helperDeviceVerificationWithInvalidCode();
     $this->helperTokenEndpointWithInvalidDeviceCode();
+    $this->helperTokenEndpointWithDeniedDeviceCode();
 
     // Advanced scenarios.
     $this->helperTokenEndpointWithExpiredDeviceCode();
@@ -404,6 +405,40 @@ class DeviceFlowFunctionalTest extends BrowserTestBase {
     $response->getBody()->rewind();
     $data = Json::decode($response->getBody()->getContents());
     $this->assertEquals('invalid_grant', $data['error']);
+  }
+
+  /**
+   * Helper: Tests token polling after the user denies authorization.
+   *
+   * RFC 8628 requires the token endpoint to return access_denied once the
+   * resource owner has denied the request. Denial must be persisted so
+   * polling does not remain authorization_pending until expiry.
+   */
+  protected function helperTokenEndpointWithDeniedDeviceCode(): void {
+    $device_data = $this->requestDeviceAuthorization();
+    $device_code = $device_data['device_code'];
+
+    $this->drupalLogin($this->testUser);
+    $this->drupalGet($this->buildUrl('/oauth/device'));
+    $this->submitForm([
+      'user_code' => $device_data['user_code'],
+    ], 'Deny Access');
+    $this->assertSession()->pageTextContains('Device authorization was denied');
+
+    $token_url = $this->buildUrl('/oauth/token');
+    $response = $this->httpClient->post($token_url, [
+      RequestOptions::FORM_PARAMS => [
+        'grant_type' => 'urn:ietf:params:oauth:grant-type:device_code',
+        'device_code' => $device_code,
+        'client_id' => $this->consumer->getClientId(),
+      ],
+      RequestOptions::HTTP_ERRORS => FALSE,
+    ]);
+
+    $this->assertContains($response->getStatusCode(), [400, 401]);
+    $response->getBody()->rewind();
+    $data = Json::decode($response->getBody()->getContents());
+    $this->assertEquals('access_denied', $data['error']);
   }
 
   /**

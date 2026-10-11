@@ -231,6 +231,15 @@ final class DeviceVerificationForm extends FormBase {
       return;
     }
 
+    // Check if the authorization request was already denied.
+    if ($this->deviceCodeRepository->isDeviceCodeRevoked($device_code_entity->getIdentifier())) {
+      $form_state->setErrorByName('user_code', $this->t('This device authorization request has already been denied.'));
+      $this->logger->notice('Device verification failed: device authorization already denied: @user_code', [
+        '@user_code' => $formatted_code,
+      ]);
+      return;
+    }
+
     // Check if device code is already authorized.
     if ($device_code_entity->getUserApproved()) {
       $form_state->setErrorByName('user_code', $this->t('This device has already been authorized.'));
@@ -292,17 +301,34 @@ final class DeviceVerificationForm extends FormBase {
   public function submitDeny(array &$form, FormStateInterface $form_state): void {
     $device_code_entity = $form_state->getTemporaryValue('device_code_entity');
 
-    if (!empty($device_code_entity)) {
+    if (empty($device_code_entity)) {
+      $this->messenger()->addError($this->t('An error occurred during device authorization. Please try again.'));
+      return;
+    }
+
+    try {
+      // Persist denial so token polling returns access_denied (RFC 8628).
+      // isDeviceCodeRevoked() treats authorized=FALSE, authorized_at set, and
+      // an empty user as revoked. Pending codes leave authorized_at empty.
+      $device_code_entity->set('authorized', FALSE);
+      $device_code_entity->set('user_id', NULL);
+      $device_code_entity->set('authorized_at', time());
+      $device_code_entity->save();
+
       $this->logger->info('Device authorization denied by user @user_id for device code @device_code', [
         '@user_id' => $this->currentUser->id(),
         '@device_code' => $device_code_entity->getIdentifier(),
       ]);
+
+      $this->messenger()->addMessage($this->t('Device authorization was denied. The device will not have access to your account.'));
+      $form_state->setRedirect('simple_oauth_device_flow.device_verification_form');
     }
-
-    $this->messenger()->addMessage($this->t('Device authorization was denied. The device will not have access to your account.'));
-
-    // Redirect to avoid resubmission.
-    $form_state->setRedirect('simple_oauth_device_flow.device_verification_form');
+    catch (\Exception $e) {
+      $this->logger->error('Failed to deny device authorization: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      $this->messenger()->addError($this->t('An error occurred while denying the device. Please try again.'));
+    }
   }
 
 }
