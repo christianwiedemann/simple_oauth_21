@@ -98,7 +98,7 @@ class DeviceCodeGrant extends Oauth2GrantBase implements ContainerFactoryPluginI
     $config = $this->configFactory->get('simple_oauth_device_flow.settings');
 
     // Get device code TTL (default 30 minutes).
-    $device_code_lifetime = $config->get('device_code_expiration') ?? 1800;
+    $device_code_lifetime = $config->get('device_code_lifetime') ?? 1800;
     $device_code_ttl = new \DateInterval(sprintf('PT%dS', $device_code_lifetime));
 
     // Get verification URI (default path).
@@ -167,7 +167,7 @@ class DeviceCodeGrant extends Oauth2GrantBase implements ContainerFactoryPluginI
     $config = $this->configFactory->get('simple_oauth_device_flow.settings');
 
     return [
-      'device_code_lifetime' => $config->get('device_code_expiration') ?? 1800,
+      'device_code_lifetime' => $config->get('device_code_lifetime') ?? 1800,
       'verification_uri' => $config->get('verification_uri') ?? '/oauth/device/verify',
       'polling_interval' => $config->get('polling_interval') ?? 5,
       'user_code_length' => $config->get('user_code_length') ?? 8,

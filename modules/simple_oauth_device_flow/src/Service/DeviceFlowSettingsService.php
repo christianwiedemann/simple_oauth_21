@@ -43,8 +43,8 @@ class DeviceFlowSettingsService {
    *   The expiration time in seconds.
    */
   public function getDeviceCodeExpiration(): int {
-    // 30 minutes default.
-    return $this->getConfig()->get('device_code_expiration') ?? 1800;
+    // 30 minutes default. Schema/install key is device_code_lifetime.
+    return $this->getConfig()->get('device_code_lifetime') ?? 1800;
   }
 
   /**

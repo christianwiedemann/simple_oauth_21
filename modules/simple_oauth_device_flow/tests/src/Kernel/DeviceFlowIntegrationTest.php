@@ -71,7 +71,7 @@ class DeviceFlowIntegrationTest extends KernelTestBase {
     $this->assertInstanceOf(DeviceFlowSettingsService::class, $settings);
 
     // Test default settings.
-    $this->assertIsInt($settings->getDeviceCodeExpiration());
+    $this->assertSame(1800, $settings->getDeviceCodeExpiration());
     $this->assertIsInt($settings->getPollingInterval());
     $this->assertIsString($settings->getVerificationUri());
 
@@ -136,12 +136,8 @@ class DeviceFlowIntegrationTest extends KernelTestBase {
     $config = $this->config('simple_oauth_device_flow.settings');
     $this->assertNotNull($config);
 
-    // Test default configuration values exist (they may be null, that's OK)
-    // Just test that getting the values doesn't cause errors.
-    $config->get('device_code_expiration');
-    $config->get('polling_interval');
-    $config->get('verification_uri');
-    $this->assertTrue(TRUE, 'Configuration loaded without errors');
+    $this->assertSame(1800, $config->get('device_code_lifetime'));
+    $this->assertSame(5, $config->get('polling_interval'));
   }
 
   /**

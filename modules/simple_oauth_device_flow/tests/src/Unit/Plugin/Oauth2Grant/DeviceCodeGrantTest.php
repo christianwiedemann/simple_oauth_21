@@ -98,7 +98,7 @@ class DeviceCodeGrantTest extends UnitTestCase {
    */
   public function testGetGrantTypeWithDefaults(): void {
     // Setup default configuration.
-    $this->config->get('device_code_expiration')->willReturn(NULL);
+    $this->config->get('device_code_lifetime')->willReturn(NULL);
     $this->config->get('verification_uri')->willReturn(NULL);
     $this->config->get('polling_interval')->willReturn(NULL);
 
@@ -122,7 +122,7 @@ class DeviceCodeGrantTest extends UnitTestCase {
    */
   public function testGetGrantTypeWithRefreshTokens(): void {
     // Setup default configuration.
-    $this->config->get('device_code_expiration')->willReturn(1800);
+    $this->config->get('device_code_lifetime')->willReturn(1800);
     $this->config->get('verification_uri')->willReturn('/oauth/device/verify');
     $this->config->get('polling_interval')->willReturn(5);
 
@@ -181,7 +181,7 @@ class DeviceCodeGrantTest extends UnitTestCase {
    * @covers ::getDeviceFlowConfig
    */
   public function testGetDeviceFlowConfig(): void {
-    $this->config->get('device_code_expiration')->willReturn(3600);
+    $this->config->get('device_code_lifetime')->willReturn(3600);
     $this->config->get('verification_uri')->willReturn('/custom/verify');
     $this->config->get('polling_interval')->willReturn(10);
     $this->config->get('user_code_length')->willReturn(6);
